@@ -7,34 +7,48 @@ import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.AmazonTextractClientBuilder;
 import com.amazonaws.services.textract.model.*;
 import com.example.pdfconverter.model.AWSPage;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
+@Slf4j
+@Service
 public class PDFTextExtractor {
+
+    @Value("${aws.access.key}")
+    private String aws_access_key;
+
+    @Value("${aws.secret.key}")
+    private String aws_secret_key;
+
 
     private AmazonTextract textractClient;
 
     public PDFTextExtractor() {
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials("AKIAQQFWRYLOOKAKFLUI", "OyhJWiA3k4jgNAy9O98Ul4REB1fc9wxyeWmwOGHb");
+        BasicAWSCredentials awsCreds = new BasicAWSCredentials(aws_access_key, aws_secret_key);
         this.textractClient = AmazonTextractClientBuilder.standard()
                 .withRegion(Regions.US_WEST_2)
                 .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
                 .build();
     }
 
-    public List<AWSPage> extractTextWithWordIds(String documentPath) throws IOException {
+    public List<AWSPage> extractTextWithWordIds(Path inputPath) throws IOException {
+        log.info("Loading PDF from: " + inputPath.toAbsolutePath());
         AnalyzeDocumentRequest request = new AnalyzeDocumentRequest()
                 .withDocument(new Document()
-                        .withBytes(ByteBuffer.wrap(Files.readAllBytes(Paths.get(documentPath)))))
+                        .withBytes(ByteBuffer.wrap(Files.readAllBytes(inputPath))))
                 .withFeatureTypes(FeatureType.FORMS, FeatureType.TABLES);
 
         AnalyzeDocumentResult result = textractClient.analyzeDocument(request);
+        log.info("Getting blocks from amazon ");
         List<Block> documentBlocks = result.getBlocks();
         return documentBlocks.stream()
                 .filter(block -> block.getBlockType().equals("PAGE"))

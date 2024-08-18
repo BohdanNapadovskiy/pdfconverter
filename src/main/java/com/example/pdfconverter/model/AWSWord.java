@@ -16,17 +16,16 @@ public class AWSWord {
     private List<Point> points;
     private String text;
 
-    private AWSWord(Block block, AWSPage page) {
+    private AWSWord(Block block) {
         this.normalizedX = block.getGeometry().getBoundingBox().getLeft();
         this.normalizedY = block.getGeometry().getBoundingBox().getTop();
         this.normalizedWidth = block.getGeometry().getBoundingBox().getWidth();
         this.normalizedHeight = block.getGeometry().getBoundingBox().getHeight();
-        // Convert normalized coordinates to actual coordinates
         this.text = block.getText();
         this.points = block.getGeometry().getPolygon();
     }
 
-    public static AWSWord createWord(Block block, AWSPage page) {
-        return new AWSWord(block, page);
+    public static AWSWord createWord(Block block) {
+        return new AWSWord(block);
     }
 }

@@ -35,12 +35,12 @@ public class AWSPage {
 
     private static List<AWSLine> getLinesFromPage(Block pageblock, List<Block> documentBlocks, AWSPage page) {
         Optional<List<String>> childIds = Optional.ofNullable(pageblock.getRelationships())
-                .map(relationships -> relationships.get(0).getIds());
+                .map(relationships -> relationships.getFirst().getIds());
 
         return documentBlocks.stream()
                 .filter(block -> childIds.orElse(new ArrayList<>()).contains(block.getId()))
                 .filter(block -> "LINE".equals(block.getBlockType()))
-                .map(block -> AWSLine.createLine(block, documentBlocks, page))
+                .map(block -> AWSLine.createLine(block, documentBlocks))
                 .toList();
     }
 }

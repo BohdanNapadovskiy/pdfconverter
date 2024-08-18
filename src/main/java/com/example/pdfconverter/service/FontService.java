@@ -48,24 +48,13 @@ public class FontService {
             textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
         }
 
-        // Adjust character spacing to fit the text width within the bounding box width
-        float characterSpacing = 0;
-        if (textWidth < realWidth) {
-            float additionalSpace = realWidth - textWidth;
-            characterSpacing = additionalSpace / (text.length() - 1); // Distribute space between characters
-        } else if (textWidth > realWidth) {
-            // If the text is wider than the bounding box, reduce character spacing (up to negative values)
-            float overrun = textWidth - realWidth;
-            characterSpacing = -overrun / (text.length() - 1);
-        }
-
         // Populate the FontInfo object with calculated values
         FontInfo fontInfo = new FontInfo();
         fontInfo.setFont(font); // Set the font (regular or bold)
         fontInfo.setFontSize(fontSize);
         fontInfo.setTextHeight(textHeight);
         fontInfo.setTextWidth(textWidth);
-        fontInfo.setCharacterSpacing(characterSpacing);
+//        fontInfo.setCharacterSpacing(characterSpacing);
 
         return fontInfo;
     }

@@ -10,7 +10,7 @@ public class FontInfo {
     private int fontSize;
     private float textHeight;
     private float textWidth;
-    private float characterSpacing;
+    private float characterSpacing=0;
     private PDFont font;
 
 

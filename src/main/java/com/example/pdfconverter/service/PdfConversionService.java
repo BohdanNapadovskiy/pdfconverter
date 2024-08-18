@@ -20,17 +20,16 @@ public class PdfConversionService {
     private final PdfCreatorFromAWS pdfCreatorFromAWS;
 
     @Value("${pdf.input.path}")
-    private String inputPath;
+    private String strInputPath;
 
-    @Value("${pdf.output.path.prefix}")
-    private String outputPrefix;
+    @Value("${pdf.output.path}")
+    private String strOutputPath;
 
     @PostConstruct
     public void processPdf() throws IOException {
-        Path path = Paths.get(inputPath);
-        String outputFileName = outputPrefix + path.getFileName().toString();
-        Path outputPath = path.getParent().resolve(outputFileName);
-        List<AWSPage> pageList = pdfTextExtractor.extractTextWithWordIds(path);
-        pdfCreatorFromAWS.overlayTextOnPDF(inputPath, outputPath, pageList);
+        Path inputPath = Paths.get(strInputPath);
+        Path outputPath = Paths.get(strOutputPath);
+        List<AWSPage> pageList = pdfTextExtractor.extractTextWithWordIds(inputPath);
+        pdfCreatorFromAWS.overlayTextOnPDF(strInputPath, outputPath, pageList);
     }
 }

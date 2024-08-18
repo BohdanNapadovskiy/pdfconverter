@@ -30,10 +30,10 @@ public class PdfCreatorFromAWS {
 
     private final FontService fontService;
 
-
-    public void overlayTextOnPDF(String inputPdfPath, Path outputPdfPath, List<AWSPage> pageList) throws IOException {
-        log.info("Creating pdf text search pdf file: {}", outputPdfPath);
-        PDDocument document = PDDocument.load(new File(inputPdfPath));
+    public void overlayTextOnPDF(String inputPdfPath, Path outputDirectory, List<AWSPage> pageList) throws IOException {
+        log.info("Creating pdf text search pdf file: {}", outputDirectory);
+        File inputFile = new File(inputPdfPath);
+        PDDocument document = PDDocument.load(inputFile);
         for (int i = 0; i < pageList.size(); i++) {
             log.info("Adding the page  # {}", i+1);
             AWSPage awsPage = pageList.get(i);
@@ -41,6 +41,13 @@ public class PdfCreatorFromAWS {
             PDRectangle mediaBox = pdpage.getMediaBox();
             overlayPageTextOnPDF(awsPage, mediaBox, document, pdpage);
         }
+
+        if (!outputDirectory.toFile().exists()) {
+            outputDirectory.toFile().mkdirs(); // Create the directory if it doesn't exist
+        }
+
+        // Create the full path for the new PDF file
+        Path outputPdfPath = outputDirectory.resolve(inputFile.getName());
         // Save the document
         document.save(outputPdfPath.toFile());
         // Close the document
@@ -77,6 +84,7 @@ public class PdfCreatorFromAWS {
         contentStream.beginText();
         contentStream.setFont(fontInfo.getFont(), fontInfo.getFontSize());
         contentStream.newLineAtOffset(actualX, actualY);
+        contentStream.setCharacterSpacing(fontInfo.getCharacterSpacing());
         contentStream.showText(textractText);
         contentStream.endText();
     }
@@ -87,7 +95,13 @@ public class PdfCreatorFromAWS {
         if (fontInfo.getFontSize() > 12) {
             yOffset = calculateYOffsetForBaseline(fontInfo.getFont(), fontInfo.getFontSize(), word.getNormalizedHeight());
         } else {
-            yOffset = (realHeight - fontInfo.getTextHeight()) / 2;
+            if((mediaBox.getHeight() == 792.00 && mediaBox.getWidth() == 612.00) ||
+                    (mediaBox.getHeight() == 612.00 && mediaBox.getWidth() == 792.00)) {
+
+                yOffset = calculateYOffsetForBaseline(fontInfo.getFont(), fontInfo.getFontSize(), word.getNormalizedHeight());
+            } else  {
+                yOffset = (realHeight - fontInfo.getTextHeight());
+            }
         }
         return actualY += yOffset;
     }

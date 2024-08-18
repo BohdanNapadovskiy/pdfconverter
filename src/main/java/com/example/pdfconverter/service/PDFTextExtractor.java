@@ -6,7 +6,9 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.AmazonTextractClientBuilder;
 import com.amazonaws.services.textract.model.*;
+import com.example.pdfconverter.config.DotenvConfig;
 import com.example.pdfconverter.model.AWSPage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,17 +25,18 @@ import java.util.stream.Collectors;
 @Service
 public class PDFTextExtractor {
 
+    private DotenvConfig config;
+
     @Value("${aws.access.key}")
     private String aws_access_key;
 
     @Value("${aws.secret.key}")
     private String aws_secret_key;
 
+    private final AmazonTextract textractClient;
 
-    private AmazonTextract textractClient;
-
-    public PDFTextExtractor() {
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(aws_access_key, aws_secret_key);
+    public PDFTextExtractor(DotenvConfig config) {
+        BasicAWSCredentials awsCreds = new BasicAWSCredentials(aws_access_key,aws_secret_key);
         this.textractClient = AmazonTextractClientBuilder.standard()
                 .withRegion(Regions.US_WEST_2)
                 .withCredentials(new AWSStaticCredentialsProvider(awsCreds))

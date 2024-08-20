@@ -30,7 +30,7 @@ public class PdfConversionService {
     private final String awsSecretKey;
     private final String s3BucketName;
     private final String s3ObjectKey;
-    private final String s3OutPutObjectKey;
+    private String s3OutPutObjectKey;
     private final String region;
 
     private AmazonS3 s3Client;
@@ -43,14 +43,23 @@ public class PdfConversionService {
         this.awsSecretKey = configLoader.getProperty("aws.secret.key");
         this.s3BucketName = configLoader.getProperty("aws.s3.bucket");
         this.s3ObjectKey = configLoader.getProperty("aws.s3.object");
-        this.s3OutPutObjectKey = configLoader.getProperty("aws.s3.output,object");
         this.region = configLoader.getProperty("aws.region");
 
+    }
+
+    private void generateNewOutputS3Key(String prefix) {
+        // Construct the new output S3 key using the prefix, original S3 key, timestamp, and unique ID
+        this.s3OutPutObjectKey = String.format("%s%s_%s_%s_output.pdf",
+                prefix,
+                s3ObjectKey);
     }
 
     public void run() throws IOException {
         buildS3Client();
         buildTextractClient();
+
+
+
         S3Object s3Object = s3Client.getObject(s3BucketName, s3ObjectKey);
 
         PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();

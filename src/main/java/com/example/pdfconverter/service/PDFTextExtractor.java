@@ -1,57 +1,30 @@
 package com.example.pdfconverter.service;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.textract.AmazonTextract;
-import com.amazonaws.services.textract.AmazonTextractClientBuilder;
 import com.amazonaws.services.textract.model.*;
-import com.example.pdfconverter.config.DotenvConfig;
 import com.example.pdfconverter.model.AWSPage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
 
 @Slf4j
-@Service
 public class PDFTextExtractor {
 
-    private DotenvConfig config;
+    public List<AWSPage> extractTextWithWordIds(S3Object s3Object, AmazonTextract textractClient) throws IOException {
+        ByteBuffer pdfBytes = ByteBuffer.wrap(s3Object.getObjectContent().readAllBytes());
 
-    @Value("${aws.access.key}")
-    private String aws_access_key;
-
-    @Value("${aws.secret.key}")
-    private String aws_secret_key;
-
-    private final AmazonTextract textractClient;
-
-    public PDFTextExtractor(DotenvConfig config) {
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(aws_access_key,aws_secret_key);
-        this.textractClient = AmazonTextractClientBuilder.standard()
-                .withRegion(Regions.US_WEST_2)
-                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-                .build();
-    }
-
-    public List<AWSPage> extractTextWithWordIds(Path inputPath) throws IOException {
-        log.info("Loading PDF from: " + inputPath.toAbsolutePath());
         AnalyzeDocumentRequest request = new AnalyzeDocumentRequest()
-                .withDocument(new Document()
-                        .withBytes(ByteBuffer.wrap(Files.readAllBytes(inputPath))))
+                .withDocument(new Document().withBytes(pdfBytes))
                 .withFeatureTypes(FeatureType.FORMS, FeatureType.TABLES);
 
         AnalyzeDocumentResult result = textractClient.analyzeDocument(request);
-        log.info("Getting blocks from amazon ");
+        log.info("Getting blocks from Amazon Textract");
         List<Block> documentBlocks = result.getBlocks();
         return documentBlocks.stream()
                 .filter(block -> block.getBlockType().equals("PAGE"))
@@ -59,4 +32,6 @@ public class PDFTextExtractor {
                 .map(block -> AWSPage.builderPage(block, documentBlocks))
                 .collect(Collectors.toList());
     }
+
+
 }

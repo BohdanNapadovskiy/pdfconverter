@@ -1,5 +1,12 @@
 package com.example.pdfconverter.service;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.textract.model.Point;
 import com.example.pdfconverter.model.AWSPage;
 import com.example.pdfconverter.model.AWSWord;
@@ -14,46 +21,53 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.state.RenderingMode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 
 @Slf4j
-@Service
-@RequiredArgsConstructor
 public class PdfCreatorFromAWS {
 
-    private final FontService fontService;
 
-    public void overlayTextOnPDF(String inputPdfPath, Path outputDirectory, List<AWSPage> pageList) throws IOException {
-        log.info("Creating pdf text search pdf file: {}", outputDirectory);
-        File inputFile = new File(inputPdfPath);
-        PDDocument document = PDDocument.load(inputFile);
-        for (int i = 0; i < pageList.size(); i++) {
-            log.info("Adding the page  # {}", i+1);
-            AWSPage awsPage = pageList.get(i);
-            PDPage pdpage = document.getPage(i);
-            PDRectangle mediaBox = pdpage.getMediaBox();
-            overlayPageTextOnPDF(awsPage, mediaBox, document, pdpage);
+
+    public void overlayTextOnPDF(AmazonS3 s3Client, String s3BucketName,
+                                 String s3ObjectKey, String outputS3Key,
+                                 List<AWSPage> pageList) throws IOException {
+        log.info("Creating searchable PDF from S3 bucket: " + s3BucketName + " with key: " + s3ObjectKey);
+
+        S3Object s3Object = s3Client.getObject(s3BucketName, s3ObjectKey);
+
+        // Load PDF from S3 directly into memory
+        try (PDDocument document = PDDocument.load(s3Object.getObjectContent())) {
+            for (int i = 0; i < pageList.size(); i++) {
+                log.info("Adding the page  # {}", i + 1);
+                AWSPage awsPage = pageList.get(i);
+                PDPage pdpage = document.getPage(i);
+                PDRectangle mediaBox = pdpage.getMediaBox();
+                overlayPageTextOnPDF(awsPage, mediaBox, document, pdpage);
+            }
+
+            // Save the modified PDF to a ByteArrayOutputStream
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            document.save(outputStream);
+
+            // Upload the modified PDF back to S3
+            byte[] pdfBytes = outputStream.toByteArray();
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(pdfBytes.length);
+            s3Client.putObject(s3BucketName, outputS3Key, new ByteArrayInputStream(pdfBytes), metadata);
+
+            log.info("PDF created and uploaded to S3 successfully!");
         }
-
-        if (!outputDirectory.toFile().exists()) {
-            outputDirectory.toFile().mkdirs(); // Create the directory if it doesn't exist
-        }
-
-        // Create the full path for the new PDF file
-        Path outputPdfPath = outputDirectory.resolve(inputFile.getName());
-        // Save the document
-        document.save(outputPdfPath.toFile());
-        // Close the document
-        document.close();
-
-        log.info("PDF created successfully!");
     }
 
     private void overlayPageTextOnPDF(AWSPage page, PDRectangle mediaBox, PDDocument document, PDPage pdpage) {
@@ -109,6 +123,7 @@ public class PdfCreatorFromAWS {
     private FontInfo calculateFontInfo(AWSWord word, PDRectangle mediaBox) throws IOException {
         float realWidth = calculateRealWidth(word.getPoints(), mediaBox.getWidth());
         float realHeight = calculateRealHeight(word.getPoints(), mediaBox.getHeight());
+        FontService fontService = new FontService();
         return fontService.calculateFontInfo(word.getText(), realWidth, realHeight);
     }
 

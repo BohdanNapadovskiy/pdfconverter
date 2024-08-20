@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-@Service
+
 public class FontService {
 
-    @Value("${font_size}")
-    private int fontSize;
+
+    private int fontSize =10;
 
 
     public FontInfo calculateFontInfo(String text, float realWidth, float realHeight) throws IOException {

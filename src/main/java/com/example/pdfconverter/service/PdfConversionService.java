@@ -68,7 +68,7 @@ public class PdfConversionService {
     public void runLocal() throws IOException {
         buildTextractClient();
 
-        Path path = Paths.get("files/449088405_10117108817928621_688891803580633890-1.pdf");
+        Path path = Paths.get("files/449088405_10117108817928621_688891803580633890-1 OCRDone2.pdf");
         String outputFileName = path.getFileName().toString();
         PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
         List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(path, this.textractClient);

@@ -38,6 +38,23 @@ import java.util.List;
 public class PdfCreatorFromAWS {
 
 
+    public void overlayTextOnPDF(String inputPdfPath, Path outputPdfPath, List<AWSPage> pageList) throws IOException {
+        log.info("Creating pdf text search pdf file: {}", outputPdfPath);
+        PDDocument document = PDDocument.load(new File(inputPdfPath));
+        for (int i = 0; i < pageList.size(); i++) {
+            log.info("Adding the page  # {}", i+1);
+            AWSPage awsPage = pageList.get(i);
+            PDPage pdpage = document.getPage(i);
+            PDRectangle mediaBox = pdpage.getMediaBox();
+            overlayPageTextOnPDF(awsPage, mediaBox, document, pdpage);
+        }
+        // Save the document
+        document.save(outputPdfPath.toFile());
+        // Close the document
+        document.close();
+
+        log.info("PDF created successfully!");
+    }
 
     public void overlayTextOnPDF(AmazonS3 s3Client, String s3BucketName,
                                  String s3ObjectKey, String outputS3Key,

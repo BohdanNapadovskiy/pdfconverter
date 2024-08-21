@@ -11,14 +11,9 @@ import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.AmazonTextractClientBuilder;
 import com.example.pdfconverter.config.ConfigLoader;
 import com.example.pdfconverter.model.AWSPage;
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -69,15 +64,30 @@ public class PdfConversionService {
 
     }
 
+
+    public void runLocal() throws IOException {
+        buildTextractClient();
+
+        Path path = Paths.get("files/449088405_10117108817928621_688891803580633890-1.pdf");
+        String outputFileName = path.getFileName().toString();
+        PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
+        List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(path, this.textractClient);
+        PdfCreatorFromAWS pdfCreator = new PdfCreatorFromAWS();
+        Path outputPath = Paths.get("files/result/"+outputFileName);
+        pdfCreator.overlayTextOnPDF(path.toString(),outputPath ,pages);
+
+    }
+
     private void buildTextractClient() {
         log.info("Creating the Textract client with credentials");
 
         BasicAWSCredentials awsCreds = new BasicAWSCredentials(awsAccessKey,awsSecretKey);
         this.textractClient = AmazonTextractClientBuilder.standard()
-                .withRegion(region)
+                .withRegion(Regions.US_WEST_2)
                 .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
                 .build();
     }
+
 
     private  void buildS3Client() {
         log.info("Creating the s3 client with credentials");
@@ -86,8 +96,6 @@ public class PdfConversionService {
                 .withRegion(region)
                 .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
                 .build();
-
-    }
-
+   }
 
 }

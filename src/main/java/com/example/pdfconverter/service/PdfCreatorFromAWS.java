@@ -125,7 +125,7 @@ public class PdfCreatorFromAWS {
         float scaleY = realHeight / fontInfo.getFontSize(); // Adjust scaling based on the real height
 
         // Create a transformation matrix with scaling
-        Matrix matrix = new Matrix(1, 0, 0, scaleY, actualX, actualY);
+        Matrix matrix = new Matrix(1, 0, 0, scaleY+0.2f, actualX, actualY+0.2f);
         // Set the text matrix
         contentStream.setTextMatrix(matrix);
 

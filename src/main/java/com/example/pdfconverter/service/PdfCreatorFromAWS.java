@@ -42,13 +42,7 @@ public class PdfCreatorFromAWS {
     public void overlayTextOnPDF(String inputPdfPath, Path outputPdfPath, List<AWSPage> pageList) throws IOException {
         log.info("Creating pdf text search pdf file: {}", outputPdfPath);
         PDDocument document = PDDocument.load(new File(inputPdfPath));
-        for (int i = 0; i < pageList.size(); i++) {
-            log.info("Adding the page  # {}", i+1);
-            AWSPage awsPage = pageList.get(i);
-            PDPage pdpage = document.getPage(i);
-            PDRectangle mediaBox = pdpage.getMediaBox();
-            overlayPageTextOnPDF(awsPage, mediaBox, document, pdpage);
-        }
+        addPageDataToDocument(pageList, document);
         // Save the document
         document.save(outputPdfPath.toFile());
         // Close the document
@@ -66,13 +60,7 @@ public class PdfCreatorFromAWS {
 
         // Load PDF from S3 directly into memory
         try (PDDocument document = PDDocument.load(s3Object.getObjectContent())) {
-            for (int i = 0; i < pageList.size(); i++) {
-                log.info("Adding the page  # {}", i + 1);
-                AWSPage awsPage = pageList.get(i);
-                PDPage pdpage = document.getPage(i);
-                PDRectangle mediaBox = pdpage.getMediaBox();
-                overlayPageTextOnPDF(awsPage, mediaBox, document, pdpage);
-            }
+            addPageDataToDocument(pageList, document);
 
             // Save the modified PDF to a ByteArrayOutputStream
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -85,6 +73,16 @@ public class PdfCreatorFromAWS {
             s3Client.putObject(s3BucketName, outputS3Key, new ByteArrayInputStream(pdfBytes), metadata);
 
             log.info("PDF created and uploaded to S3 successfully!");
+        }
+    }
+
+    private void addPageDataToDocument(List<AWSPage> pageList, PDDocument document) {
+        for (int i = 0; i < pageList.size(); i++) {
+            log.info("Adding the page  # {}", i + 1);
+            AWSPage awsPage = pageList.get(i);
+            PDPage pdpage = document.getPage(i);
+            PDRectangle mediaBox = pdpage.getMediaBox();
+            overlayPageTextOnPDF(awsPage, mediaBox, document, pdpage);
         }
     }
 
@@ -108,8 +106,10 @@ public class PdfCreatorFromAWS {
         String textractText = word.getText();
         float actualX = calculateXOffset(word, mediaBox);
         float actualY = calculateYOffset(word, mediaBox);
+        float realWidth = calculateRealWidth(word.getPoints(), mediaBox.getWidth());
+        float realHeight = calculateRealHeight(word.getPoints(), mediaBox.getHeight());
 
-        FontInfo fontInfo = calculateFontInfo(word, mediaBox);
+        FontInfo fontInfo = calculateFontInfo(word, mediaBox, realWidth, realHeight);
         actualY = adjustYPosition(word, fontInfo, mediaBox, actualY);
 
         contentStream.setRenderingMode(RenderingMode.NEITHER);
@@ -120,17 +120,12 @@ public class PdfCreatorFromAWS {
         // Set the font and size
         contentStream.setFont(fontInfo.getFont(), fontInfo.getFontSize());
 
-        // Create a transformation matrix
-        // This matrix will translate (position) the text at (actualX, actualY)
-        // and also apply character spacing by scaling the X-axis.
-        Matrix matrix = Matrix.getTranslateInstance(actualX, actualY);
+        // Calculate scaling factor based on realHeight
+        // This ensures that the text height corresponds to realHeight
+        float scaleY = realHeight / fontInfo.getFontSize(); // Adjust scaling based on the real height
 
-        // If character spacing is needed, apply it through scaling on X-axis.
-        if (fontInfo.getCharacterSpacing() != 0) {
-            float characterSpacingScale = fontInfo.getCharacterSpacing() / 1000.0f; // adjust based on font metrics
-            matrix.scale(1.0f + characterSpacingScale, 1.0f); // Scale X-axis by character spacing factor
-        }
-
+        // Create a transformation matrix with scaling
+        Matrix matrix = new Matrix(1, 0, 0, scaleY, actualX, actualY);
         // Set the text matrix
         contentStream.setTextMatrix(matrix);
 
@@ -139,17 +134,6 @@ public class PdfCreatorFromAWS {
 
         // End text block
         contentStream.endText();
-
-
-//        Matrix matrix = Matrix.getScaleInstance(fontInfo.getScalingFactor(), 1.0f);
-//        contentStream.setRenderingMode(RenderingMode.NEITHER);
-//        contentStream.beginText();
-//        contentStream.setFont(fontInfo.getFont(), fontInfo.getFontSize());
-//        contentStream.newLineAtOffset(actualX, actualY);
-//        contentStream.setCharacterSpacing(fontInfo.getCharacterSpacing());
-////        contentStream.setTextMatrix(matrix);
-//        contentStream.showText(textractText);
-//        contentStream.endText();
     }
 
     private float adjustYPosition(AWSWord word, FontInfo fontInfo, PDRectangle mediaBox, float actualY) {
@@ -158,9 +142,9 @@ public class PdfCreatorFromAWS {
         if (fontInfo.getFontSize() > 12) {
             yOffset = calculateYOffsetForBaseline(fontInfo.getFont(), fontInfo.getFontSize(), word.getNormalizedHeight());
         } else {
-            if((mediaBox.getHeight() == 792.00 && mediaBox.getWidth() == 612.00) ||
-                    (mediaBox.getHeight() == 612.00 && mediaBox.getWidth() == 792.00)) {
-
+            if(((mediaBox.getHeight() == 792.00 && mediaBox.getWidth() == 612.00) ||
+                    (mediaBox.getHeight() == 612.00 && mediaBox.getWidth() == 792.00)) ||
+                (mediaBox.getHeight() == 762.00 && mediaBox.getWidth() == 219.00)) {
                 yOffset = calculateYOffsetForBaseline(fontInfo.getFont(), fontInfo.getFontSize(), word.getNormalizedHeight());
             } else  {
                 yOffset = (realHeight - fontInfo.getTextHeight());
@@ -169,11 +153,9 @@ public class PdfCreatorFromAWS {
         return actualY += yOffset;
     }
 
-    private FontInfo calculateFontInfo(AWSWord word, PDRectangle mediaBox) throws IOException {
-        float realWidth = calculateRealWidth(word.getPoints(), mediaBox.getWidth());
-        float realHeight = calculateRealHeight(word.getPoints(), mediaBox.getHeight());
+    private FontInfo calculateFontInfo(AWSWord word, PDRectangle mediaBox, float realWidth, float realHeight) throws IOException {
         FontService fontService = new FontService();
-        List<FontInfo> fontInfos = fontService.calculateFontInfoForAllFonts(word.getText(), realWidth, realHeight);
+//        List<FontInfo> fontInfos = fontService.calculateFontInfoForAllFonts(word.getText(), realWidth, realHeight);
         return fontService.calculateFontInfo(word.getText(), realWidth, realHeight);
     }
 

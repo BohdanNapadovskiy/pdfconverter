@@ -11,7 +11,7 @@ public class PdfConversionServiceApplication {
 
     public static void main(String...args) throws IOException {
         PdfConversionService pdfConversionService = new PdfConversionService();
-        pdfConversionService.runLocal();
+        pdfConversionService.run();
     }
 
 }

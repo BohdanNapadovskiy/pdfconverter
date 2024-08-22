@@ -53,8 +53,6 @@ public class PdfConversionService {
         buildS3Client();
         buildTextractClient();
 
-
-
         S3Object s3Object = s3Client.getObject(s3BucketName, s3ObjectKey);
 
         PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
@@ -68,7 +66,7 @@ public class PdfConversionService {
     public void runLocal() throws IOException {
         buildTextractClient();
 
-        Path path = Paths.get("files/Backmarket.pdf");
+        Path path = Paths.get("files/Untitled design (6)-3.pdf");
         String outputFileName = path.getFileName().toString();
         PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
         List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(path, this.textractClient);

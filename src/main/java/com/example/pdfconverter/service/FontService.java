@@ -45,108 +45,77 @@ public class FontService {
             }
         }
 
-        // Check if the text width is significantly smaller than the bounding box width
-//        if (textWidth < realWidth * 0.8) { // Adjust the threshold as needed
-//            // Switch to bold font and recalculate dimensions
-//            scalingFactor = (realWidth * 0.8f) / textWidth;
-//            font = boldFont;
-//            textWidth = font.getStringWidth(text) / 1000 * fontSize;
-//            textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
-//        }
+        // Populate the FontInfo object with calculated values
+        FontInfo fontInfo = new FontInfo();
+        fontInfo.setFont(font); // Set the font (regular or bold)
+        fontInfo.setFontSize(fontSize);
+        fontInfo.setTextHeight(textHeight);
+        fontInfo.setTextWidth(textWidth);
+        fontInfo.setScalingFactor(scalingFactor);
+        fontInfo.setCharacterSpacing(characterSpacing);
 
-//        if (textWidth < realWidth && text.length() >1) { // Adjust the threshold as needed
-//            // Switch to bold font and recalculate dimensions
-//            float extraSpace = realWidth - textWidth;
-//            // Calculate the number of gaps between characters
-//            int numGaps = text.length() - 1;
-//            // Calculate the required character spacing to fill the available width
-//            characterSpacing = extraSpace / numGaps;
-//            textWidth = font.getStringWidth(text) / 1000 * fontSize;
-//            textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
+        return fontInfo;
+    }
+
+//    @SneakyThrows
+//    private FontInfo calculateFontInfoByFontList(PDFont font, String text, float realWidth, float realHeight) {
+//        log.info("Calculate font size for font {} for text {}", font.getName() , text );
+//        // Calculate initial text dimensions with the base font size
+//        float textWidth = font.getStringWidth(text) / 1000 * fontSize;
+//        float textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
+//        float scalingFactor =0;
+//        float characterSpacing =0;
+//        // Adjust font size based on the height of the bounding box
+//        if (textWidth > realWidth) {
+//            while (textWidth > realWidth && fontSize > 1) {
+//                fontSize -= 1;
+//                textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
+//                textWidth = font.getStringWidth(text) / 1000 * fontSize;
+//            }
+//        } else if (textWidth < realWidth) {
+//            while (textWidth < realWidth) {
+//                fontSize += 1;
+//                textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
+//                textWidth = font.getStringWidth(text) / 1000 * fontSize;
+//            }
+//        }
 //
-//        }
+//        // Populate the FontInfo object with calculated values
+//        FontInfo fontInfo = new FontInfo();
+//        fontInfo.setFont(font); // Set the font (regular or bold)
+//        fontInfo.setFontSize(fontSize);
+//        fontInfo.setTextHeight(textHeight);
+//        fontInfo.setTextWidth(textWidth);
+//        fontInfo.setCharacterSpacing(characterSpacing);
+//
+//        fontInfo.setScalingFactor(scalingFactor);
+//
+//        return fontInfo;
+//
+//    }
 
-        // Populate the FontInfo object with calculated values
-        FontInfo fontInfo = new FontInfo();
-        fontInfo.setFont(font); // Set the font (regular or bold)
-        fontInfo.setFontSize(fontSize);
-        fontInfo.setTextHeight(textHeight);
-        fontInfo.setTextWidth(textWidth);
-        fontInfo.setScalingFactor(scalingFactor);
-        fontInfo.setCharacterSpacing(characterSpacing);
-
-        return fontInfo;
-    }
-
-    @SneakyThrows
-    private FontInfo calculateFontInfoByFontList(PDFont font, String text, float realWidth, float realHeight) {
-        log.info("Calculate font size for font {} for text {}", font.getName() , text );
-        // Calculate initial text dimensions with the base font size
-        float textWidth = font.getStringWidth(text) / 1000 * fontSize;
-        float textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
-        float scalingFactor =0;
-        float characterSpacing =0;
-        // Adjust font size based on the height of the bounding box
-        if (textWidth > realWidth) {
-            while (textWidth > realWidth && fontSize > 1) {
-                fontSize -= 1;
-                textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
-                textWidth = font.getStringWidth(text) / 1000 * fontSize;
-            }
-        } else if (textWidth < realWidth) {
-            while (textWidth < realWidth) {
-                fontSize += 1;
-                textHeight = font.getFontDescriptor().getFontBoundingBox().getHeight() / 1000 * fontSize;
-                textWidth = font.getStringWidth(text) / 1000 * fontSize;
-            }
-        }
-
-        // Check if the text width is significantly smaller than the bounding box width
-//        if (textWidth < realWidth ) { // Adjust the threshold as needed
-//            // Switch to bold font and recalculate dimensions
-//            float extraSpace = realWidth - textWidth;
-//            // Calculate the number of gaps between characters
-//            int numGaps = text.length() - 1;
-//            // Calculate the required character spacing to fill the available width
-//            characterSpacing = extraSpace / numGaps;
-//        }
-
-        // Populate the FontInfo object with calculated values
-        FontInfo fontInfo = new FontInfo();
-        fontInfo.setFont(font); // Set the font (regular or bold)
-        fontInfo.setFontSize(fontSize);
-        fontInfo.setTextHeight(textHeight);
-        fontInfo.setTextWidth(textWidth);
-        fontInfo.setCharacterSpacing(characterSpacing);
-
-        fontInfo.setScalingFactor(scalingFactor);
-
-        return fontInfo;
-
-    }
-
-
-    public List<FontInfo> calculateFontInfoForAllFonts(String text, float realWidth, float realHeight) {
-        List<PDType1Font> fontList = new ArrayList<>();
-        fontList.add(PDType1Font.COURIER);
-        fontList.add(PDType1Font.COURIER_BOLD);
-        fontList.add(PDType1Font.COURIER_BOLD_OBLIQUE);
-        fontList.add(PDType1Font.COURIER_OBLIQUE);
-        fontList.add(PDType1Font.HELVETICA);
-        fontList.add(PDType1Font.HELVETICA_BOLD);
-        fontList.add(PDType1Font.HELVETICA_BOLD_OBLIQUE);
-        fontList.add(PDType1Font.HELVETICA_OBLIQUE);
-//        fontList.add(PDType1Font.SYMBOL);
-        fontList.add(PDType1Font.TIMES_ROMAN);
-        fontList.add(PDType1Font.TIMES_BOLD);
-        fontList.add(PDType1Font.TIMES_BOLD_ITALIC);
-        fontList.add(PDType1Font.TIMES_ITALIC);
-//        fontList.add(PDType1Font.ZAPF_DINGBATS);
-
-        return fontList.stream()
-                .map(font -> calculateFontInfoByFontList(font, text, realWidth, realHeight))
-                .toList();
-    }
+//
+//    public List<FontInfo> calculateFontInfoForAllFonts(String text, float realWidth, float realHeight) {
+//        List<PDType1Font> fontList = new ArrayList<>();
+//        fontList.add(PDType1Font.COURIER);
+//        fontList.add(PDType1Font.COURIER_BOLD);
+//        fontList.add(PDType1Font.COURIER_BOLD_OBLIQUE);
+//        fontList.add(PDType1Font.COURIER_OBLIQUE);
+//        fontList.add(PDType1Font.HELVETICA);
+//        fontList.add(PDType1Font.HELVETICA_BOLD);
+//        fontList.add(PDType1Font.HELVETICA_BOLD_OBLIQUE);
+//        fontList.add(PDType1Font.HELVETICA_OBLIQUE);
+////        fontList.add(PDType1Font.SYMBOL);
+//        fontList.add(PDType1Font.TIMES_ROMAN);
+//        fontList.add(PDType1Font.TIMES_BOLD);
+//        fontList.add(PDType1Font.TIMES_BOLD_ITALIC);
+//        fontList.add(PDType1Font.TIMES_ITALIC);
+////        fontList.add(PDType1Font.ZAPF_DINGBATS);
+//
+//        return fontList.stream()
+//                .map(font -> calculateFontInfoByFontList(font, text, realWidth, realHeight))
+//                .toList();
+//    }
 
 
 }

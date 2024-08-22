@@ -66,7 +66,7 @@ public class PdfConversionService {
     public void runLocal() throws IOException {
         buildTextractClient();
 
-        Path path = Paths.get("files/Untitled design (6)-3.pdf");
+        Path path = Paths.get("files/Backmarket.pdf");
         String outputFileName = path.getFileName().toString();
         PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
         List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(path, this.textractClient);

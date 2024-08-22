@@ -11,6 +11,7 @@ public class FontInfo {
     private float textHeight;
     private float textWidth;
     private float characterSpacing=0;
+    private float scalingFactor;
     private PDFont font;
 
 

@@ -21,6 +21,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.state.RenderingMode;
+import org.apache.pdfbox.util.Matrix;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -112,12 +113,43 @@ public class PdfCreatorFromAWS {
         actualY = adjustYPosition(word, fontInfo, mediaBox, actualY);
 
         contentStream.setRenderingMode(RenderingMode.NEITHER);
+
+        // Begin text block
         contentStream.beginText();
+
+        // Set the font and size
         contentStream.setFont(fontInfo.getFont(), fontInfo.getFontSize());
-        contentStream.newLineAtOffset(actualX, actualY);
-        contentStream.setCharacterSpacing(fontInfo.getCharacterSpacing());
+
+        // Create a transformation matrix
+        // This matrix will translate (position) the text at (actualX, actualY)
+        // and also apply character spacing by scaling the X-axis.
+        Matrix matrix = Matrix.getTranslateInstance(actualX, actualY);
+
+        // If character spacing is needed, apply it through scaling on X-axis.
+        if (fontInfo.getCharacterSpacing() != 0) {
+            float characterSpacingScale = fontInfo.getCharacterSpacing() / 1000.0f; // adjust based on font metrics
+            matrix.scale(1.0f + characterSpacingScale, 1.0f); // Scale X-axis by character spacing factor
+        }
+
+        // Set the text matrix
+        contentStream.setTextMatrix(matrix);
+
+        // Show the text
         contentStream.showText(textractText);
+
+        // End text block
         contentStream.endText();
+
+
+//        Matrix matrix = Matrix.getScaleInstance(fontInfo.getScalingFactor(), 1.0f);
+//        contentStream.setRenderingMode(RenderingMode.NEITHER);
+//        contentStream.beginText();
+//        contentStream.setFont(fontInfo.getFont(), fontInfo.getFontSize());
+//        contentStream.newLineAtOffset(actualX, actualY);
+//        contentStream.setCharacterSpacing(fontInfo.getCharacterSpacing());
+////        contentStream.setTextMatrix(matrix);
+//        contentStream.showText(textractText);
+//        contentStream.endText();
     }
 
     private float adjustYPosition(AWSWord word, FontInfo fontInfo, PDRectangle mediaBox, float actualY) {
@@ -141,6 +173,7 @@ public class PdfCreatorFromAWS {
         float realWidth = calculateRealWidth(word.getPoints(), mediaBox.getWidth());
         float realHeight = calculateRealHeight(word.getPoints(), mediaBox.getHeight());
         FontService fontService = new FontService();
+        List<FontInfo> fontInfos = fontService.calculateFontInfoForAllFonts(word.getText(), realWidth, realHeight);
         return fontService.calculateFontInfo(word.getText(), realWidth, realHeight);
     }
 

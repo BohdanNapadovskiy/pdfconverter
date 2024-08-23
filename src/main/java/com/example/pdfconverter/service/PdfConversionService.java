@@ -21,79 +21,77 @@ import java.util.List;
 @Slf4j
 public class PdfConversionService {
 
-    private final String awsAccessKey;
-    private final String awsSecretKey;
-    private final String s3BucketName;
-    private final String s3ObjectKey;
-    private String s3OutPutObjectKey;
-    private final String region;
+  private final String awsAccessKey;
+  private final String awsSecretKey;
+  private final String s3BucketName;
+  private final String s3ObjectKey;
+  private String s3OutPutObjectKey;
+  private final String region;
 
-    private AmazonS3 s3Client;
-    private AmazonTextract textractClient;
-
-
-    public PdfConversionService() {
-        ConfigLoader configLoader = new ConfigLoader();
-        this.awsAccessKey = configLoader.getProperty("aws.access.key");
-        this.awsSecretKey = configLoader.getProperty("aws.secret.key");
-        this.s3BucketName = configLoader.getProperty("aws.s3.bucket");
-        this.s3ObjectKey = configLoader.getProperty("aws.s3.object");
-        this.region = configLoader.getProperty("aws.region");
-
-    }
-
-    private void generateNewOutputS3Key(String prefix) {
-        // Construct the new output S3 key using the prefix, original S3 key, timestamp, and unique ID
-        this.s3OutPutObjectKey = String.format("%s%s_%s_%s_output.pdf",
-                prefix,
-                s3ObjectKey);
-    }
-
-    public void run() throws IOException {
-        buildS3Client();
-        buildTextractClient();
-
-        S3Object s3Object = s3Client.getObject(s3BucketName, s3ObjectKey);
-
-        PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
-        List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(s3Object,textractClient);
-        PdfCreatorFromAWS pdfCreator = new PdfCreatorFromAWS();
-        pdfCreator.overlayTextOnPDF(this.s3Client, s3BucketName, s3ObjectKey, s3OutPutObjectKey,pages);
-
-    }
+  private AmazonS3 s3Client;
+  private AmazonTextract textractClient;
 
 
-    public void runLocal() throws IOException {
-        buildTextractClient();
+  public PdfConversionService() {
+    ConfigLoader configLoader = new ConfigLoader();
+    this.awsAccessKey = configLoader.getProperty("aws.access.key");
+    this.awsSecretKey = configLoader.getProperty("aws.secret.key");
+    this.s3BucketName = configLoader.getProperty("aws.s3.bucket");
+    this.s3ObjectKey = configLoader.getProperty("aws.s3.object");
+    this.region = configLoader.getProperty("aws.region");
 
-        Path path = Paths.get("files/Backmarket.pdf");
-        String outputFileName = path.getFileName().toString();
-        PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
-        List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(path, this.textractClient);
-        PdfCreatorFromAWS pdfCreator = new PdfCreatorFromAWS();
-        Path outputPath = Paths.get("files/result/"+outputFileName);
-        pdfCreator.overlayTextOnPDF(path.toString(),outputPath ,pages);
+  }
 
-    }
+  private void generateNewOutputS3Key(String prefix) {
+    // Construct the new output S3 key using the prefix, original S3 key, timestamp, and unique ID
+    this.s3OutPutObjectKey = String.format("%s%s", prefix, s3ObjectKey);
+  }
 
-    private void buildTextractClient() {
-        log.info("Creating the Textract client with credentials");
+  public void run() throws IOException {
+    buildS3Client();
+    buildTextractClient();
+    generateNewOutputS3Key("Text_Search_");
+    S3Object s3Object = s3Client.getObject(s3BucketName, s3ObjectKey);
 
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(awsAccessKey,awsSecretKey);
-        this.textractClient = AmazonTextractClientBuilder.standard()
-                .withRegion(Regions.US_WEST_2)
-                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-                .build();
-    }
+    PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
+    List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(s3Object, textractClient);
+    PdfCreatorFromAWS pdfCreator = new PdfCreatorFromAWS();
+    pdfCreator.overlayTextOnPDF(this.s3Client, s3BucketName, s3ObjectKey, s3OutPutObjectKey, pages);
+
+  }
 
 
-    private  void buildS3Client() {
-        log.info("Creating the s3 client with credentials");
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(awsAccessKey,awsSecretKey);
-        this.s3Client = AmazonS3ClientBuilder.standard()
-                .withRegion(region)
-                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-                .build();
-   }
+  public void runLocal() throws IOException {
+    buildTextractClient();
+
+    Path path = Paths.get("files/FedEx.pdf");
+    String outputFileName = path.getFileName().toString();
+    PDFTextExtractor pdfTextExtractor = new PDFTextExtractor();
+    List<AWSPage> pages = pdfTextExtractor.extractTextWithWordIds(path, this.textractClient);
+    PdfCreatorFromAWS pdfCreator = new PdfCreatorFromAWS();
+    Path outputPath = Paths.get("files/result/" + outputFileName);
+    pdfCreator.overlayTextOnPDF(path.toString(), outputPath, pages);
+
+  }
+
+  private void buildTextractClient() {
+    log.info("Creating the Textract client with credentials");
+
+    BasicAWSCredentials awsCreds = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    this.textractClient = AmazonTextractClientBuilder.standard()
+        .withRegion(Regions.US_WEST_2)
+        .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+        .build();
+  }
+
+
+  private void buildS3Client() {
+    log.info("Creating the s3 client with credentials");
+    BasicAWSCredentials awsCreds = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+    this.s3Client = AmazonS3ClientBuilder.standard()
+        .withRegion(Regions.US_WEST_2)
+        .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+        .build();
+  }
 
 }
